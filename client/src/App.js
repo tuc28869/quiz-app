@@ -13,7 +13,7 @@ function App() {
     setQuestions([]);
 
     try {
-      const response = await fetch('http://localhost:5000/generate-quiz', {
+      const response = await fetch('https://quiz-app-36wj5.ondigitalocean.app/generate-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ certification }),
