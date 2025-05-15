@@ -79,9 +79,12 @@ function App() {
 
       {!loading && !error && (!questions || questions.length === 0) && (
         <div className="cert-buttons">
+          <button onClick={() => startQuiz('SIE')}>SIE</button>
           <button onClick={() => startQuiz('Series 7')}>Series 7</button>
           <button onClick={() => startQuiz('Series 63')}>Series 63</button>
-          <button onClick={() => startQuiz('SIE')}>SIE</button>
+          <button onClick={() => startQuiz('Series 65')}>Series 65</button>
+          <button onClick={() => startQuiz('Series 66')}>Series 66</button>
+          <button onClick={() => startQuiz('CFP')}>CFP</button>
         </div>
       )}
 
