@@ -62,7 +62,7 @@ app.post('/generate-quiz', async (req, res) => {
       }`;
 
       const result = await generateText({
-        model: perplexity('sonar-large-chat'),
+        model: perplexity('sonar-pro'),
         prompt: prompt,
         apiKey: process.env.PERPLEXITY_API_KEY,
         maxTokens: 1500,
