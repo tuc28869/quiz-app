@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { perplexity } = require('@ai-sdk/perplexity');
 const { generateText } = require('ai');
-const { jsonrepair } = require('jsonrepair'); // Fixed import
+const { jsonrepair } = require('jsonrepair');
 
 const app = express();
 
@@ -27,7 +27,6 @@ app.use((req, res, next) => {
 // Improved quiz generation endpoint
 app.post('/generate-quiz', async (req, res) => {
   try {
-    // Validate input
     const { certification } = req.body;
     if (!certification || typeof certification !== 'string') {
       return res.status(400).json({ 
@@ -35,88 +34,78 @@ app.post('/generate-quiz', async (req, res) => {
       });
     }
 
-    // Construct prompt with stricter validation
-    const sessionId = Math.floor(Math.random() * 1e12);
-    const prompt = `Generate 5 multiple-choice questions for the ${certification} exam.
-    Session ID: ${sessionId}
-    STRICTLY FOLLOW:
-    1. Valid JSON with double quotes
-    2. No markdown or extra text
-    3. Exactly 4 options per question
-    4. Correct answer as A/B/C/D
-    5. Escape special characters with \\
+    let validatedQuestions = [];
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    {
-      "questions": [
-        {
-          "text": "Question text",
-          "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-          "correct": "A",
-          "explanation": "Brief explanation"
-        }
-      ]
-    }`;
-    
-    // Generate questions with Perplexity
-    const result = await generateText({
-      model: perplexity('sonar-pro'), // Valid model
-      prompt: prompt,
-      apiKey: process.env.PERPLEXITY_API_KEY,
-      maxTokens: 1200,
-      temperature: 0.7
-    });
+    while (validatedQuestions.length < 5 && attempts < maxAttempts) {
+      attempts++;
+      
+      const prompt = `Generate 5 NEW multiple-choice questions for ${certification} exam.
+      Session: ${Date.now()}-${Math.random().toString(36).substring(2, 7)}
+      STRICTLY FOLLOW:
+      1. Valid JSON with double quotes
+      2. No markdown/extra text
+      3. 4 options per question
+      4. Correct answer A/B/C/D
+      5. Vary question types and topics
+      
+      {
+        "questions": [
+          {
+            "text": "Question text (max 120 chars)",
+            "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+            "correct": "A",
+            "explanation": "Brief explanation (60 chars)"
+          }
+        ]
+      }`;
 
-    // Validate response exists
-    if (!result?.text) {
-      console.error('Perplexity API Error:', result);
-      throw new Error('AI model failed to generate questions');
-    }
-
-    // Parse and validate response with JSON repair
-    let quizData;
-    try {
-      const repairedJson = jsonrepair(result.text); // Now works correctly
-      quizData = JSON.parse(repairedJson);
-    } catch (parseError) {
-      console.error('JSON Parse Error:', parseError.message);
-      console.error('Repaired JSON:', jsonrepair(result.text));
-      return res.status(500).json({ 
-        error: 'AI response format issue',
-        diagnostic: process.env.NODE_ENV === 'development' 
-          ? result.text.substring(0, 200) + '...' 
-          : undefined
+      const result = await generateText({
+        model: perplexity('sonar-large-chat'),
+        prompt: prompt,
+        apiKey: process.env.PERPLEXITY_API_KEY,
+        maxTokens: 1500,
+        temperature: 1.2,
+        topP: 0.95
       });
-    }
 
-    // Enhanced validation
-    if (!Array.isArray(quizData?.questions)) {
-      throw new Error('Invalid question format from AI');
-    }
+      if (!result?.text) continue;
 
-    // Strict question validation
-    const validatedQuestions = quizData.questions
-      .map((q, index) => {
-        const base = {
-          text: sanitizeText(q.text, `Question ${index + 1}`),
-          options: validateOptions(q.options),
-          correct: validateCorrectAnswer(q.correct),
-          explanation: sanitizeText(q.explanation, '')
-        };
+      try {
+        const repairedJson = jsonrepair(result.text);
+        const quizData = JSON.parse(repairedJson);
         
-        // Additional validation
-        if (base.options.length !== 4 || !base.text.includes('?')) {
-          return null;
-        }
-        return base;
-      })
-      .filter(Boolean);
+        if (!Array.isArray(quizData?.questions)) continue;
+
+        validatedQuestions = quizData.questions
+          .map((q, index) => {
+            const base = {
+              text: sanitizeText(q.text, `Question ${index + 1}`),
+              options: validateOptions(q.options, certification),
+              correct: validateCorrectAnswer(q.correct),
+              explanation: sanitizeText(q.explanation, '')
+            };
+            
+            // Relax validation for certain certifications
+            const minOptions = certification === 'CFP' ? 3 : 4;
+            return (base.options.length >= minOptions && base.text.includes('?')) 
+              ? base 
+              : null;
+          })
+          .filter(Boolean)
+          .slice(0, 5);
+
+      } catch (parseError) {
+        console.error('Parse error:', parseError.message);
+      }
+    }
 
     if (validatedQuestions.length < 3) {
-      throw new Error(`Only ${validatedQuestions.length} valid questions generated`);
+      throw new Error(`Only generated ${validatedQuestions.length} valid questions`);
     }
 
-    res.setHeader('Content-Type', 'application/json');
-    return res.json({ questions: validatedQuestions.slice(0, 5) });
+    res.json({ questions: validatedQuestions });
 
   } catch (error) {
     console.error('Server Error:', error.message);
@@ -128,18 +117,24 @@ app.post('/generate-quiz', async (req, res) => {
   }
 });
 
-// Helper functions (unchanged)
+// Enhanced helper functions
 const sanitizeText = (text, fallback) => {
-  if (typeof text !== 'string' || text.length < 10) return fallback;
+  if (typeof text !== 'string' || text.trim().length < 10) return fallback;
   return text.substring(0, 200).trim();
 };
 
-const validateOptions = (options) => {
+const validateOptions = (options, certification) => {
   if (!Array.isArray(options)) return [];
-  return options
+  const validated = options
     .slice(0, 4)
     .map(opt => typeof opt === 'string' ? opt.substring(0, 150) : 'Invalid option')
     .filter(opt => opt.length > 3);
+
+  // Add default option if needed for CFP
+  if (certification === 'CFP' && validated.length === 3) {
+    validated.push('D) Not applicable');
+  }
+  return validated;
 };
 
 const validateCorrectAnswer = (correct) => {
