@@ -5,8 +5,13 @@ const { perplexity } = require('@ai-sdk/perplexity');
 const { generateText } = require('ai');
 const { jsonrepair } = require('jsonrepair');
 const rateLimit = require('express-rate-limit'); // ADDED: Require the package
+const hpp = require('hpp');          // <--- ADD THIS
+const helmet = require('helmet');    // <--- ADD THIS
 
 const app = express();
+
+app.use(helmet()); // <--- ADD THIS (helmet first, sets headers)
+app.use(hpp());    // <--- ADD THIS (hpp next, sanitizes query params)
 
 // ADDED: Rate limiter configuration
 const limiter = rateLimit({
