@@ -38,34 +38,35 @@ app.post('/generate-quiz', async (req, res) => {
     let attempts = 0;
     const maxAttempts = 3;
 
-    while (validatedQuestions.length < 5 && attempts < maxAttempts) {
+    while (validatedQuestions.length < 20 && attempts < maxAttempts) {
       attempts++;
       
-      const prompt = `Generate 5 NEW multiple-choice questions for ${certification} exam.
-      Session: ${Date.now()}-${Math.random().toString(36).substring(2, 7)}
-      STRICTLY FOLLOW:
-      1. Valid JSON with double quotes
-      2. No markdown/extra text
-      3. 4 options per question
-      4. Correct answer A/B/C/D
-      5. Vary question types and topics
-      
-      {
-        "questions": [
-          {
-            "text": "Question text (max 120 chars)",
-            "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-            "correct": "A",
-            "explanation": "Brief explanation (60 chars)"
-          }
-        ]
-      }`;
+      const prompt = `Generate 20 NEW, unique, and randomized multiple-choice questions for the ${certification} exam.
+Session: ${Date.now()}-${Math.random().toString(36).substring(2, 7)}
+STRICTLY FOLLOW:
+1. Valid JSON with double quotes
+2. No markdown or extra text
+3. 4 options per question
+4. Correct answer A/B/C/D
+5. Vary question types and topics (calculations, ethics, regulations, concepts, etc.)
+6. Make each set of questions as different as possible from previous sessions
+
+{
+  "questions": [
+    {
+      "text": "Question text (max 120 chars)",
+      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+      "correct": "A",
+      "explanation": "Brief explanation (60 chars)"
+    }
+  ]
+}`;
 
       const result = await generateText({
         model: perplexity('sonar-pro'),
         prompt: prompt,
         apiKey: process.env.PERPLEXITY_API_KEY,
-        maxTokens: 1500,
+        maxTokens: 3000,
         temperature: 1.2,
         topP: 0.95
       });
@@ -86,7 +87,6 @@ app.post('/generate-quiz', async (req, res) => {
               correct: validateCorrectAnswer(q.correct),
               explanation: sanitizeText(q.explanation, '')
             };
-            
             // Relax validation for certain certifications
             const minOptions = certification === 'CFP' ? 3 : 4;
             return (base.options.length >= minOptions && base.text.includes('?')) 
@@ -94,7 +94,7 @@ app.post('/generate-quiz', async (req, res) => {
               : null;
           })
           .filter(Boolean)
-          .slice(0, 5);
+          .slice(0, 20);
 
       } catch (parseError) {
         console.error('Parse error:', parseError.message);
@@ -138,7 +138,7 @@ const validateOptions = (options, certification) => {
 };
 
 const validateCorrectAnswer = (correct) => {
-  const firstChar = String(correct).toUpperCase()[0];
+  const firstChar = String(correct).toUpperCase();
   return ['A','B','C','D'].includes(firstChar) ? firstChar : 'A';
 };
 
