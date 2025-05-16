@@ -42,21 +42,21 @@ app.post('/generate-quiz', async (req, res) => {
       attempts++;
       
       const prompt = `Generate 20 NEW, unique, and randomized multiple-choice questions for the ${certification} exam.
-Session: ${Date.now()}-${Math.random().toString(36).substring(2, 7)}
-STRICTLY FOLLOW:
-1. Valid JSON with double quotes
-2. No markdown or extra text
-3. 4 options per question
-4. Correct answer A/B/C/D
-5. Vary question types and topics (calculations, ethics, regulations, concepts, etc.)
-6. Make each set of questions as different as possible from previous sessions
+      Session: ${Date.now()}-${Math.random().toString(36).substring(2, 7)}
+      STRICTLY FOLLOW:
+      1. Valid JSON with double quotes
+      2. No markdown or extra text
+      3. 4 options per question
+      4. Correct answer must be RANDOMLY distributed among A, B, C, and D (not always A)
+      5. Vary question types and topics (calculations, ethics, regulations, concepts, etc.)
+      6. Make each set of questions as different as possible from previous sessions
 
 {
   "questions": [
     {
       "text": "Question text (max 120 chars)",
       "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-      "correct": "A",
+      "correct": "A", // or "B", "C", or "D"
       "explanation": "Brief explanation (60 chars)"
     }
   ]
