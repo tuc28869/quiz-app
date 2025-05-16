@@ -36,14 +36,16 @@ app.post('/generate-quiz', async (req, res) => {
     }
 
     // Construct prompt with stricter validation
-    const prompt = `Generate 5 multiple-choice questions for ${certification} exam.
+    const sessionId = Math.floor(Math.random() * 1e12);
+    const prompt = `Generate 5 multiple-choice questions for the ${certification} exam.
+    Session ID: ${sessionId}
     STRICTLY FOLLOW:
     1. Valid JSON with double quotes
     2. No markdown or extra text
     3. Exactly 4 options per question
     4. Correct answer as A/B/C/D
     5. Escape special characters with \\
-    
+
     {
       "questions": [
         {
@@ -54,7 +56,7 @@ app.post('/generate-quiz', async (req, res) => {
         }
       ]
     }`;
-
+    
     // Generate questions with Perplexity
     const result = await generateText({
       model: perplexity('sonar-pro'), // Valid model
