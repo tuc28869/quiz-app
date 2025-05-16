@@ -4,8 +4,18 @@ const cors = require('cors');
 const { perplexity } = require('@ai-sdk/perplexity');
 const { generateText } = require('ai');
 const { jsonrepair } = require('jsonrepair');
+const rateLimit = require('express-rate-limit'); // ADDED: Require the package
 
 const app = express();
+
+// ADDED: Rate limiter configuration
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Enhanced CORS configuration
 app.use(cors({
@@ -17,6 +27,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// ADDED: Apply rate limiter to the quiz endpoint
+app.use('/generate-quiz', limiter); // MUST COME BEFORE THE ROUTE DEFINITION
 
 // Add request logging middleware
 app.use((req, res, next) => {
