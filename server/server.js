@@ -22,14 +22,18 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Enhanced CORS configuration
-app.use(cors({
+// ================== CORS FIXES ==================
+const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? process.env.CLIENT_URL 
+    ? 'https://quizbull.app'  // Changed to explicit domain
     : ['http://localhost:3000', 'http://127.0.0.1:3000'],
   methods: ['POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type']
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight requests
+// =================================================
 
 app.use(express.json());
 
