@@ -64,7 +64,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1>Certification Quiz Generator</h1>
+      <h1>Welcome to QuizBull - Select the certification you would like to take a practice quiz on:</h1>
 
       {loading && <div className="loading">Loading questions...</div>}
       
