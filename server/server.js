@@ -4,16 +4,16 @@ const cors = require('cors');
 const { perplexity } = require('@ai-sdk/perplexity');
 const { generateText } = require('ai');
 const { jsonrepair } = require('jsonrepair');
-const rateLimit = require('express-rate-limit'); // ADDED: Require the package
-const hpp = require('hpp');          // <--- ADD THIS
-const helmet = require('helmet');    // <--- ADD THIS
+const rateLimit = require('express-rate-limit');
+const hpp = require('hpp');
+const helmet = require('helmet');
 
 const app = express();
 
-app.use(helmet()); // <--- ADD THIS (helmet first, sets headers)
-app.use(hpp());    // <--- ADD THIS (hpp next, sanitizes query params)
+app.use(helmet());
+app.use(hpp());
 
-// ADDED: Rate limiter configuration
+// Rate limiter configuration
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -23,22 +23,29 @@ const limiter = rateLimit({
 });
 
 // ================== CORS FIXES ==================
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? 'https://quizbull.app'  // Changed to explicit domain
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
-  methods: ['POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
+const allowedOrigins = [
+  'https://quizbull.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
+const corsOptionsDelegate = function (req, callback) {
+  let corsOptions;
+  if (allowedOrigins.indexOf(req.header('Origin')) !== -1) {
+    corsOptions = { origin: true, methods: ['POST', 'OPTIONS'], allowedHeaders: ['Content-Type'] };
+  } else {
+    corsOptions = { origin: false };
+  }
+  callback(null, corsOptions);
 };
 
-app.use(cors(corsOptions));
-
+app.use(cors(corsOptionsDelegate));
 // =================================================
 
 app.use(express.json());
 
-// ADDED: Apply rate limiter to the quiz endpoint
-app.use('/generate-quiz', limiter); // MUST COME BEFORE THE ROUTE DEFINITION
+// Apply rate limiter to the quiz endpoint
+app.use('/generate-quiz', limiter);
 
 // Add request logging middleware
 app.use((req, res, next) => {
