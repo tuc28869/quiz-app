@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { perplexity } = require('@ai-sdk/perplexity');
 const { generateText } = require('ai');
-const jsonrepair = require('jsonrepair'); // Added JSON repair
+const { jsonrepair } = require('jsonrepair'); // Fixed import
 
 const app = express();
 
@@ -57,7 +57,7 @@ app.post('/generate-quiz', async (req, res) => {
 
     // Generate questions with Perplexity
     const result = await generateText({
-      model: perplexity('sonar-pro'),
+      model: perplexity('sonar-pro'), // Valid model
       prompt: prompt,
       apiKey: process.env.PERPLEXITY_API_KEY,
       maxTokens: 1200,
@@ -73,7 +73,7 @@ app.post('/generate-quiz', async (req, res) => {
     // Parse and validate response with JSON repair
     let quizData;
     try {
-      const repairedJson = jsonrepair(result.text); // Repair JSON first
+      const repairedJson = jsonrepair(result.text); // Now works correctly
       quizData = JSON.parse(repairedJson);
     } catch (parseError) {
       console.error('JSON Parse Error:', parseError.message);
@@ -107,7 +107,7 @@ app.post('/generate-quiz', async (req, res) => {
         }
         return base;
       })
-      .filter(Boolean); // Remove invalid questions
+      .filter(Boolean);
 
     if (validatedQuestions.length < 3) {
       throw new Error(`Only ${validatedQuestions.length} valid questions generated`);
@@ -126,7 +126,7 @@ app.post('/generate-quiz', async (req, res) => {
   }
 });
 
-// Enhanced helper functions
+// Helper functions (unchanged)
 const sanitizeText = (text, fallback) => {
   if (typeof text !== 'string' || text.length < 10) return fallback;
   return text.substring(0, 200).trim();
@@ -137,7 +137,7 @@ const validateOptions = (options) => {
   return options
     .slice(0, 4)
     .map(opt => typeof opt === 'string' ? opt.substring(0, 150) : 'Invalid option')
-    .filter(opt => opt.length > 3); // Remove empty options
+    .filter(opt => opt.length > 3);
 };
 
 const validateCorrectAnswer = (correct) => {
